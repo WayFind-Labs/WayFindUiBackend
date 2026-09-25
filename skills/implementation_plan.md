@@ -206,6 +206,12 @@ class ImageUploadResponse(BaseModel):
 
 ## Phase 3 — Sessions & Auth
 
+**Status: COMPLETE**
+
+- [x] Add session-scoped JWT creation and verification.
+- [x] Add Redis-backed session creation, lookup, touch, and cleanup.
+- [x] Add `POST /api/sessions` and wire session store lifecycle into FastAPI.
+
 ### `app/auth.py`
 
 ```python

@@ -7,16 +7,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import Settings, get_settings
+from app.routes.sessions import router as sessions_router
+from app.session import SessionStore
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    settings: Settings = app.state.settings
+    app.state.session_store = SessionStore(settings.redis_url)
     yield
+    await app.state.session_store.close()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="WayFind UI Backend", lifespan=lifespan)
+    app.state.settings = settings
 
     app.add_middleware(
         CORSMiddleware,
@@ -27,6 +33,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     api_router = APIRouter(prefix="/api")
+    api_router.include_router(sessions_router)
     app.include_router(api_router)
 
     @app.exception_handler(RequestValidationError)
