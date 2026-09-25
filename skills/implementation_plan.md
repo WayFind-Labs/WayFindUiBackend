@@ -257,6 +257,13 @@ async def create_session() -> SessionResponse:
 
 ## Phase 4 — Rate Limiting
 
+**Status: COMPLETE**
+
+- [x] Add Redis-backed per-session fixed-window message limiting.
+- [x] Add Redis-backed per-session fixed-window image limiting.
+- [x] Return HTTP 429 with a retry hint when a limit is exceeded.
+- [x] Wire limiter creation and cleanup into the FastAPI lifespan.
+
 ### `app/rate_limit.py`
 
 ```python

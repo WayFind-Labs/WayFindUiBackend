@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import Settings, get_settings
+from app.rate_limit import RateLimiter
 from app.routes.sessions import router as sessions_router
 from app.session import SessionStore
 
@@ -15,8 +16,16 @@ from app.session import SessionStore
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     app.state.session_store = SessionStore(settings.redis_url)
-    yield
-    await app.state.session_store.close()
+    app.state.rate_limiter = RateLimiter(
+        redis_url=settings.redis_url,
+        message_limit=settings.rate_limit_messages_per_minute,
+        image_limit=settings.rate_limit_images_per_hour,
+    )
+    try:
+        yield
+    finally:
+        await app.state.rate_limiter.close()
+        await app.state.session_store.close()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
