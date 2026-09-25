@@ -91,9 +91,9 @@ ShelterAppUiBackend/
 
 ### Tasks
 
-- [ ] Initialize Python project with `pyproject.toml` (Python 3.12+)
-- [ ] Configure **uv** as package manager (consistent with `WayFindMCPClient`)
-- [ ] Define dependencies:
+- [x] Initialize Python project with `pyproject.toml` (Python 3.12+)
+- [x] Configure **uv** as package manager (consistent with `WayFindMCPClient`)
+- [x] Define dependencies:
   - `fastapi` + `uvicorn[standard]`
   - `pydantic` v2 + `pydantic-settings`
   - `redis[asyncio]`
@@ -103,7 +103,7 @@ ShelterAppUiBackend/
   - `python-dotenv`
   - `slowapi` (rate limiting)
   - `pytest` + `pytest-asyncio` + `httpx` (testing)
-- [ ] Create `.env.example`:
+- [x] Create `.env.example`:
   ```env
   SECRET_KEY=changeme-jwt-secret
   CORS_ORIGINS=["http://localhost:3000"]
@@ -121,12 +121,24 @@ ShelterAppUiBackend/
   JWT_ALGORITHM=HS256
   JWT_SESSION_EXPIRY_HOURS=24
   ```
-- [ ] Create `.gitignore` (Python defaults + `.env`)
-- [ ] Create `README.md` with architecture overview and dev setup
+- [x] Create `.gitignore` (Python defaults + `.env`)
+- [x] Create `README.md` with architecture overview and dev setup
 
 ---
 
 ## Phase 2 — App Factory & Schemas Foundation
+
+**Status: COMPLETE**
+
+- [x] Create the FastAPI app factory and `/api` router mount.
+- [x] Configure frontend-only CORS and safe global error responses.
+- [x] Add settings loading from `.env` with development defaults.
+- [x] Add the shared session, message, agent event, and image schemas.
+- [x] Add package scaffolding for routes and services.
+
+Redis session lifecycle is implemented in Phase 3, and request rate limiting
+is implemented in Phase 4; the Phase 2 app factory intentionally leaves those
+runtime services uninitialized until their owning phases.
 
 ### `app/config.py`
 
