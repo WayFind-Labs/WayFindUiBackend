@@ -37,7 +37,11 @@ async def send_message(
     try:
         events = await agent_client.send_event(
             session_id,
-            {"type": "user_message", "content": body.content},
+            {
+                "type": "user_message",
+                "content": body.content,
+                "media_id": body.media_id,
+            },
         )
     except AgentClientError as exc:
         raise HTTPException(

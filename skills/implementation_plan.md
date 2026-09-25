@@ -389,6 +389,14 @@ async def stream_events(
 
 ## Phase 7 — Image Upload
 
+**Status: COMPLETE**
+
+- [x] Validate allowed MIME types, file size, and image signatures.
+- [x] Add development safety-scan and object-storage service stubs.
+- [x] Add authenticated `POST /api/sessions/{session_id}/images`.
+- [x] Enforce image rate limits before validation and storage.
+- [x] Return `media_id` and forward it with the next message event.
+
 ### `services/image_service.py`
 
 ```python
