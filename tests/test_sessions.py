@@ -17,7 +17,9 @@ async def test_create_session_returns_session_and_token(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routes.sessions.create_session_token", lambda value: f"token-{value}"
     )
-    response = await create_session(SimpleNamespace(state=SimpleNamespace(session_store=FakeStore())))
+    response = await create_session(
+        SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(session_store=FakeStore())))
+    )
 
     assert response.session_id == session_id
     assert response.token == "token-session-123"

@@ -29,13 +29,22 @@ class FakeStore:
         self.touched.append(session_id)
 
 
+class FakeBroker:
+    async def push(self, session_id: str, event: AgentEvent) -> None:
+        pass
+
+
 @pytest.mark.asyncio
 async def test_message_forwards_media_id_and_touches_session() -> None:
     agent = FakeAgentClient()
     store = FakeStore()
     request = SimpleNamespace(
         app=SimpleNamespace(
-            state=SimpleNamespace(rate_limiter=FakeLimiter(), session_store=store)
+            state=SimpleNamespace(
+                rate_limiter=FakeLimiter(),
+                session_store=store,
+                event_broker=FakeBroker(),
+            )
         )
     )
 
