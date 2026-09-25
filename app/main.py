@@ -8,8 +8,10 @@ from fastapi.responses import JSONResponse
 
 from app.config import Settings, get_settings
 from app.rate_limit import RateLimiter
+from app.routes.messages import router as messages_router
 from app.routes.sessions import router as sessions_router
 from app.session import SessionStore
+from services.agent_client import AgentClient
 
 
 @asynccontextmanager
@@ -21,9 +23,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         message_limit=settings.rate_limit_messages_per_minute,
         image_limit=settings.rate_limit_images_per_hour,
     )
+    app.state.agent_client = AgentClient(
+        base_url=settings.agent_service_url,
+        api_key=settings.shelter_backend_api_key,
+    )
     try:
         yield
     finally:
+        await app.state.agent_client.close()
         await app.state.rate_limiter.close()
         await app.state.session_store.close()
 
@@ -43,6 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     api_router = APIRouter(prefix="/api")
     api_router.include_router(sessions_router)
+    api_router.include_router(messages_router)
     app.include_router(api_router)
 
     @app.exception_handler(RequestValidationError)

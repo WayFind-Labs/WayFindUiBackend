@@ -285,6 +285,14 @@ async def check_image_rate(session_id: str) -> None:
 
 ## Phase 5 — Message Endpoint & Agent Client
 
+**Status: COMPLETE**
+
+- [x] Add the internal async HTTP client with API-key authentication.
+- [x] Add `POST /api/sessions/{session_id}/messages` with bearer JWT auth.
+- [x] Enforce session ownership and message rate limits before forwarding.
+- [x] Forward user messages and return validated agent events.
+- [x] Touch session activity after a successful agent response.
+
 ### `services/agent_client.py`
 
 ```python
