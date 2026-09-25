@@ -45,5 +45,7 @@ async def send_message(
             detail="The agent service is temporarily unavailable.",
         ) from exc
 
+    for event in events:
+        await request.app.state.event_broker.push(session_id, event)
     await request.app.state.session_store.touch(session_id)
     return events

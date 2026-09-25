@@ -344,6 +344,13 @@ async def send_message(
 
 ## Phase 6 — SSE Event Stream
 
+**Status: COMPLETE**
+
+- [x] Add per-session in-memory event queues with cleanup signals.
+- [x] Add authenticated `GET /api/sessions/{session_id}/events` SSE streaming.
+- [x] Publish agent events from the message route into the session broker.
+- [x] Close broker queues during application shutdown.
+
 ### `services/event_broker.py`
 
 ```python

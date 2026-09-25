@@ -8,10 +8,12 @@ from fastapi.responses import JSONResponse
 
 from app.config import Settings, get_settings
 from app.rate_limit import RateLimiter
+from app.routes.events import router as events_router
 from app.routes.messages import router as messages_router
 from app.routes.sessions import router as sessions_router
 from app.session import SessionStore
 from services.agent_client import AgentClient
+from services.event_broker import EventBroker
 
 
 @asynccontextmanager
@@ -27,9 +29,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         base_url=settings.agent_service_url,
         api_key=settings.shelter_backend_api_key,
     )
+    app.state.event_broker = EventBroker()
     try:
         yield
     finally:
+        await app.state.event_broker.close()
         await app.state.agent_client.close()
         await app.state.rate_limiter.close()
         await app.state.session_store.close()
@@ -51,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api_router = APIRouter(prefix="/api")
     api_router.include_router(sessions_router)
     api_router.include_router(messages_router)
+    api_router.include_router(events_router)
     app.include_router(api_router)
 
     @app.exception_handler(RequestValidationError)
