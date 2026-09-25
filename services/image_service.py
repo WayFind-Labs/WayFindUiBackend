@@ -9,6 +9,10 @@ class ImageValidationError(Exception):
     """Raised when an uploaded file is not an allowed image."""
 
 
+class ImageTooLargeError(ImageValidationError):
+    """Raised when an uploaded image exceeds the configured size."""
+
+
 class ImageService:
     def __init__(self, settings: Settings | None = None) -> None:
         settings = settings or get_settings()
@@ -22,7 +26,7 @@ class ImageService:
         file_bytes = await file.read(self._max_size_bytes + 1)
         await file.seek(0)
         if len(file_bytes) > self._max_size_bytes:
-            raise ImageValidationError("Image exceeds the maximum allowed size.")
+            raise ImageTooLargeError("Image exceeds the maximum allowed size.")
         if not self._has_valid_signature(file_bytes, file.content_type):
             raise ImageValidationError("Uploaded file is not a valid image.")
 

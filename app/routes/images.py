@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, stat
 
 from app.routes.messages import get_current_session
 from schemas.image import ImageUploadResponse
-from services.image_service import ImageService, ImageValidationError
+from services.image_service import (
+    ImageService,
+    ImageTooLargeError,
+    ImageValidationError,
+)
 
 router = APIRouter()
 
@@ -30,9 +34,14 @@ async def upload_image(
         await image_service.validate(file)
         file_bytes = await file.read()
         await file.seek(0)
+    except ImageTooLargeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=str(exc),
+        ) from exc
     except ImageValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
 

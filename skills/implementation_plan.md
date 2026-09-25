@@ -447,6 +447,13 @@ async def upload_image(
 
 ## Phase 8 — Tests
 
+**Status: COMPLETE**
+
+- [x] Add session and JWT tests.
+- [x] Add message forwarding and session ownership tests.
+- [x] Add image validation and upload tests.
+- [x] Add agent-client header, parsing, and timeout tests.
+
 ### `tests/test_sessions.py`
 - `POST /api/sessions` → 200, returns `session_id` + `token`
 - JWT is valid and decodes to correct `session_id`
