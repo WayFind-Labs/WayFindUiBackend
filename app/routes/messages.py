@@ -35,14 +35,24 @@ async def send_message(
 
     await request.app.state.rate_limiter.check_message(session_id)
     try:
-        events = await agent_client.send_event(
-            session_id,
-            {
-                "type": "user_message",
-                "content": body.content,
+        if body.form_data is not None:
+            event_payload = {
+                "type": "user_form_response",
+                "form_data": body.form_data,
+            }
+        elif body.media_id and not body.content:
+            event_payload = {
+                "type": "user_image",
                 "media_id": body.media_id,
-            },
-        )
+            }
+        else:
+            event_payload = {
+                "type": "user_message",
+                "content": body.content or "",
+                "media_id": body.media_id,
+            }
+
+        events = await agent_client.send_event(session_id, event_payload)
     except AgentClientError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

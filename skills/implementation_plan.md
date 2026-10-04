@@ -1,541 +1,66 @@
-# Shelter Backend — Implementation Plan
+# Shelter Backend — Phased Implementation Plan
 
 **Repository**: `e:\React\Shelter\ShelterAppUiBackend`  
-**Date**: 2026-09-25  
-**Scope**: Public API gateway — FastAPI between Next.js PWA and WayFindMCPClient
-
-> [!IMPORTANT]
-> Read `skills/context.md` first. It contains the full architecture, responsibility boundaries,
-> API contracts, and deployment model. This plan focuses only on implementation phases.
+**Status**: Comprehensive Deterministic-First & Crisis Response Plan  
 
 ---
 
-## Background
-
-`ShelterAppUiBackend` is the **public-facing API gateway** for Wayfind. It:
-- Accepts requests from the Next.js PWA over HTTPS + SSE
-- Handles auth, sessions, validation, rate limiting, and image intake
-- Forwards processed events to `WayFindMCPClient` (internal only)
-- Streams agent events back to the frontend via SSE
-
-It contains **no AI logic**. All intelligence lives in `WayFindMCPClient`.
-
----
-
-## Architecture Overview
+## Phase Overview
 
 ```text
-Next.js PWA
-    |  HTTPS + SSE
-    v
-ShelterAppUiBackend (this repo) - port 8001
-    |  Internal HTTP
-    v
-WayFindMCPClient - port 8000 (never exposed publicly)
-    |
-    v
-MCP Server + Databases
+Phase 1: Schemas & Data Models (PostgreSQL & PostGIS)
+   ↓
+Phase 2: Temporal Window Engine & Dynamic Query Builder
+   ↓
+Phase 3: Normalized Weighted Scoring & Tolerance Decays
+   ↓
+Phase 4: Guardian Pre-Registration & 1-Click SOS Broadcast
+   ↓
+Phase 5: Structured Search & Intake APIs (Null-Tolerant)
+   ↓
+Phase 6: Staff Human-in-the-Loop Review Queue
+   ↓
+Phase 7: Two-Phase Notification & Masked Communication Gateway
+   ↓
+Phase 8: Empathetic De-escalation Crisis AI Companion
+   ↓
+Phase 9: Cascaded Biometric Face Matcher (Post-MVP Extensibility)
 ```
 
 ---
 
-## Target Directory Structure
+## Detailed Phase Breakdown
 
-```text
-ShelterAppUiBackend/
-├── skills/
-│   ├── context.md                           DONE
-│   └── implementation_plan.md              THIS FILE
-├── pyproject.toml                           Phase 1
-├── .env.example                             Phase 1
-├── .gitignore                               Phase 1
-├── README.md                                Phase 1
-|
-├── app/
-│   ├── __init__.py                          Phase 2
-│   ├── main.py                              Phase 2
-│   ├── config.py                            Phase 2
-│   ├── auth.py                              Phase 3
-│   ├── session.py                           Phase 3
-│   ├── rate_limit.py                        Phase 4
-│   └── routes/
-│       ├── __init__.py                      Phase 2
-│       ├── sessions.py                      Phase 3
-│       ├── messages.py                      Phase 5
-│       ├── events.py                        Phase 6
-│       └── images.py                        Phase 7
-|
-├── services/
-│   ├── __init__.py                          Phase 2
-│   ├── agent_client.py                      Phase 5
-│   ├── image_service.py                     Phase 7
-│   └── event_broker.py                      Phase 6
-|
-├── schemas/
-│   ├── __init__.py                          Phase 2
-│   ├── session.py                           Phase 3
-│   ├── message.py                           Phase 5
-│   └── image.py                             Phase 7
-|
-└── tests/
-    ├── __init__.py                          Phase 8
-    ├── test_sessions.py
-    ├── test_messages.py
-    ├── test_images.py
-    └── test_agent_client.py
-```
+### Phase 1: Database Schemas & Status Lifecycle
+* Models: `Guardian`, `Child` (`REGISTERED_SAFE`, `REPORTED_MISSING`, `FOUND`), `SOSBeacon`, `IntakeCase`, `MatchScore`, `AuditLog`.
+* PostGIS spatial indexing for locations.
 
----
+### Phase 2: Temporal Window Engine & Query Builder
+* Dynamic time-window bounding ($[\text{Lost Time} - \text{buffer}] \le \text{Intake Time} \le [\text{Now} + \text{buffer}]$).
+* Parameterized SQL builder omitting `null` attributes.
 
-## Phase 1 — Project Setup
+### Phase 3: Weighted Scoring & Mathematical Decays
+* Linear age decay ($\pm 0 \to 1.0, \pm 1 \to 0.85, \pm 2 \to 0.60, \pm 3 \to 0.20$).
+* Height decay window ($\pm 5\text{ cm} \to 1.0, \pm 15\text{ cm} \to 0.0$).
+* Denominator normalization for missing user inputs.
 
-### Tasks
+### Phase 4: Guardian Pre-Registration & 1-Click SOS APIs
+* `POST /api/children/register`: Pre-registration (defaults to `REGISTERED_SAFE`).
+* `POST /api/cases/sos`: 1-Click SOS trigger, captures `last_seen_time`, flips status to `REPORTED_MISSING`, emits `child.sos.activated.v1`.
 
-- [x] Initialize Python project with `pyproject.toml` (Python 3.12+)
-- [x] Configure **uv** as package manager (consistent with `WayFindMCPClient`)
-- [x] Define dependencies:
-  - `fastapi` + `uvicorn[standard]`
-  - `pydantic` v2 + `pydantic-settings`
-  - `redis[asyncio]`
-  - `httpx` (async HTTP client for internal calls)
-  - `PyJWT` (JWT session tokens)
-  - `python-multipart` (image upload)
-  - `python-dotenv`
-  - `slowapi` (rate limiting)
-  - `pytest` + `pytest-asyncio` + `httpx` (testing)
-- [x] Create `.env.example`:
-  ```env
-  SECRET_KEY=changeme-jwt-secret
-  CORS_ORIGINS=["http://localhost:3000"]
-  HOST=0.0.0.0
-  PORT=8001
-  REDIS_URL=redis://localhost:6379
-  RATE_LIMIT_MESSAGES_PER_MINUTE=20
-  RATE_LIMIT_IMAGES_PER_HOUR=10
-  AGENT_SERVICE_URL=http://localhost:8000
-  SHELTER_BACKEND_API_KEY=changeme-dev-secret
-  MAX_IMAGE_SIZE_MB=10
-  ALLOWED_IMAGE_TYPES=["image/jpeg","image/png","image/webp"]
-  IMAGE_SAFETY_SCAN_URL=http://localhost:9000
-  IMAGE_STORAGE_URL=http://localhost:9001
-  JWT_ALGORITHM=HS256
-  JWT_SESSION_EXPIRY_HOURS=24
-  ```
-- [x] Create `.gitignore` (Python defaults + `.env`)
-- [x] Create `README.md` with architecture overview and dev setup
+### Phase 5: Structured Search & Intake Endpoints
+* `POST /api/search/match`: Evaluates active missing/found cases within the temporal window.
 
----
+### Phase 6: Staff Review Queue & HITL Approvals
+* `GET /api/review/queue`: Staff queue for uncertain ($0.50 \le S < 0.80$) and high ($S \ge 0.80$) matches.
+* `POST /api/review/{id}/decision`: Staff `CONFIRM` or `REJECT` action with tamper-evident audit logs.
 
-## Phase 2 — App Factory & Schemas Foundation
+### Phase 7: Two-Phase Notification & Communication Gateway
+* **Phase 1 Alert:** Immediate SMS/Push to guardian on potential match detection.
+* **Phase 2 Alert:** Verified shelter address / Twilio masked call/SMS bridge connecting finder and guardian.
 
-**Status: COMPLETE**
+### Phase 8: Empathetic De-escalation Crisis AI Companion
+* Conversational edge adapter using a fast LLM (Gemini Flash Lite) to deliver trauma-informed reassurance, breathing prompts, immediate safety instructions, and gentle background slot extraction.
 
-- [x] Create the FastAPI app factory and `/api` router mount.
-- [x] Configure frontend-only CORS and safe global error responses.
-- [x] Add settings loading from `.env` with development defaults.
-- [x] Add the shared session, message, agent event, and image schemas.
-- [x] Add package scaffolding for routes and services.
-
-Redis session lifecycle is implemented in Phase 3, and request rate limiting
-is implemented in Phase 4; the Phase 2 app factory intentionally leaves those
-runtime services uninitialized until their owning phases.
-
-### `app/config.py`
-
-```python
-from pydantic_settings import BaseSettings
-from typing import List
-
-class Settings(BaseSettings):
-    secret_key: str
-    cors_origins: List[str] = ["http://localhost:3000"]
-    host: str = "0.0.0.0"
-    port: int = 8001
-    redis_url: str = "redis://localhost:6379"
-    rate_limit_messages_per_minute: int = 20
-    rate_limit_images_per_hour: int = 10
-    agent_service_url: str = "http://localhost:8000"
-    shelter_backend_api_key: str
-    max_image_size_mb: int = 10
-    allowed_image_types: List[str] = ["image/jpeg", "image/png", "image/webp"]
-    image_safety_scan_url: str = ""
-    image_storage_url: str = ""
-    jwt_algorithm: str = "HS256"
-    jwt_session_expiry_hours: int = 24
-
-    class Config:
-        env_file = ".env"
-```
-
-### `app/main.py`
-
-- FastAPI app factory
-- CORS middleware (allow frontend origin only — never the agent service origin)
-- Global exception handlers (no stack traces to client)
-- Mount `/api` router
-- Mount rate limiter
-- Lifespan: startup → init Redis session store; shutdown → close Redis
-
-### `schemas/` — shared Pydantic models
-
-```python
-# schemas/session.py
-class SessionResponse(BaseModel):
-    session_id: str
-    token: str
-
-# schemas/message.py
-class MessageRequest(BaseModel):
-    content: str = Field(..., min_length=1, max_length=2000)
-
-class AgentEvent(BaseModel):
-    type: str
-    content: str | None = None
-    fields: list[str] | None = None
-    results: list[dict] | None = None
-    record_id: str | None = None
-    media_id: str | None = None
-
-# schemas/image.py
-class ImageUploadResponse(BaseModel):
-    media_id: str
-    message: str = "Image received and stored."
-```
-
----
-
-## Phase 3 — Sessions & Auth
-
-**Status: COMPLETE**
-
-- [x] Add session-scoped JWT creation and verification.
-- [x] Add Redis-backed session creation, lookup, touch, and cleanup.
-- [x] Add `POST /api/sessions` and wire session store lifecycle into FastAPI.
-
-### `app/auth.py`
-
-```python
-# JWT session token (no user identity yet — session-scoped only)
-
-def create_session_token(session_id: str, expiry_hours: int) -> str:
-    """Create JWT encoding only session_id + expiry."""
-    ...
-
-def verify_session_token(token: str) -> str:
-    """Verify token and return session_id. Raise 401 if invalid."""
-    ...
-```
-
-### `app/session.py`
-
-```python
-# Redis-backed session store
-# Stores: { session_id: { "created_at": ..., "last_active": ... } }
-# No agent state stored here — WayFindMCPClient owns agent state
-
-class SessionStore:
-    async def create(self) -> str:           # returns session_id
-    async def exists(self, session_id) -> bool:
-    async def touch(self, session_id) -> None:  # update last_active
-    async def close(self) -> None:
-```
-
-### `app/routes/sessions.py`
-
-```python
-# POST /api/sessions
-# Creates a new anonymous session and returns JWT
-
-@router.post("/sessions")
-async def create_session() -> SessionResponse:
-    session_id = await session_store.create()
-    token = create_session_token(session_id)
-    return SessionResponse(session_id=session_id, token=token)
-```
-
----
-
-## Phase 4 — Rate Limiting
-
-**Status: COMPLETE**
-
-- [x] Add Redis-backed per-session fixed-window message limiting.
-- [x] Add Redis-backed per-session fixed-window image limiting.
-- [x] Return HTTP 429 with a retry hint when a limit is exceeded.
-- [x] Wire limiter creation and cleanup into the FastAPI lifespan.
-
-### `app/rate_limit.py`
-
-```python
-# Per-session rate limits using slowapi or a custom Redis counter
-
-# Messages: RATE_LIMIT_MESSAGES_PER_MINUTE per session
-# Images:   RATE_LIMIT_IMAGES_PER_HOUR per session
-
-async def check_message_rate(session_id: str) -> None:
-    """Raise 429 if session has exceeded message rate limit."""
-    ...
-
-async def check_image_rate(session_id: str) -> None:
-    """Raise 429 if session has exceeded image rate limit."""
-    ...
-```
-
----
-
-## Phase 5 — Message Endpoint & Agent Client
-
-**Status: COMPLETE**
-
-- [x] Add the internal async HTTP client with API-key authentication.
-- [x] Add `POST /api/sessions/{session_id}/messages` with bearer JWT auth.
-- [x] Enforce session ownership and message rate limits before forwarding.
-- [x] Forward user messages and return validated agent events.
-- [x] Touch session activity after a successful agent response.
-
-### `services/agent_client.py`
-
-```python
-# Internal async HTTP client to WayFindMCPClient
-
-class AgentClient:
-    def __init__(self, base_url: str, api_key: str):
-        self._client = httpx.AsyncClient(
-            base_url=base_url,
-            headers={"X-Internal-Key": api_key},
-            timeout=60.0
-        )
-
-    async def send_event(
-        self,
-        session_id: str,
-        event: dict
-    ) -> list[AgentEvent]:
-        """POST /internal/sessions/{session_id}/events"""
-        ...
-
-    async def close(self) -> None:
-        await self._client.aclose()
-```
-
-### `app/routes/messages.py`
-
-```python
-# POST /api/sessions/{session_id}/messages
-# Auth: Bearer JWT
-# Body: { "content": "string" }
-
-@router.post("/sessions/{session_id}/messages")
-async def send_message(
-    session_id: str,
-    body: MessageRequest,
-    current_session: str = Depends(verify_session_token),
-    agent_client: AgentClient = Depends(get_agent_client),
-) -> list[AgentEvent]:
-    # 1. Verify session_id matches JWT session
-    # 2. Check rate limit
-    # 3. Forward to agent client
-    # 4. Return agent events
-    # 5. Update session last_active
-    ...
-```
-
----
-
-## Phase 6 — SSE Event Stream
-
-**Status: COMPLETE**
-
-- [x] Add per-session in-memory event queues with cleanup signals.
-- [x] Add authenticated `GET /api/sessions/{session_id}/events` SSE streaming.
-- [x] Publish agent events from the message route into the session broker.
-- [x] Close broker queues during application shutdown.
-
-### `services/event_broker.py`
-
-```python
-# Manages in-memory SSE queues per session
-# Agent events are pushed here; clients consume via GET /events
-
-class EventBroker:
-    async def push(self, session_id: str, event: AgentEvent) -> None:
-    async def consume(self, session_id: str) -> AsyncGenerator[AgentEvent, None]:
-    async def close_session(self, session_id: str) -> None:
-```
-
-### `app/routes/events.py`
-
-```python
-# GET /api/sessions/{session_id}/events
-# Auth: Bearer JWT
-# Returns: text/event-stream
-
-@router.get("/sessions/{session_id}/events")
-async def stream_events(
-    session_id: str,
-    current_session: str = Depends(verify_session_token),
-    broker: EventBroker = Depends(get_event_broker),
-) -> StreamingResponse:
-    async def generate():
-        async for event in broker.consume(session_id):
-            yield f"data: {event.model_dump_json()}\n\n"
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
-```
-
-**Alternative**: In v1 you can skip SSE and return events directly from `POST /messages`. Add SSE later when the frontend is ready to consume it. Start simple.
-
----
-
-## Phase 7 — Image Upload
-
-**Status: COMPLETE**
-
-- [x] Validate allowed MIME types, file size, and image signatures.
-- [x] Add development safety-scan and object-storage service stubs.
-- [x] Add authenticated `POST /api/sessions/{session_id}/images`.
-- [x] Enforce image rate limits before validation and storage.
-- [x] Return `media_id` and forward it with the next message event.
-
-### `services/image_service.py`
-
-```python
-class ImageService:
-    async def validate(self, file: UploadFile) -> None:
-        """Reject if: wrong mime type, too large, not a real image."""
-        ...
-
-    async def safety_scan(self, file_bytes: bytes, mime_type: str) -> bool:
-        """Call external safety scan service. Returns True if safe."""
-        # Stub: always returns True in dev
-        ...
-
-    async def store(self, file_bytes: bytes, mime_type: str) -> str:
-        """Store in object storage. Returns media_id."""
-        # Stub: generate UUID, return as media_id
-        ...
-```
-
-### `app/routes/images.py`
-
-```python
-# POST /api/sessions/{session_id}/images
-# Auth: Bearer JWT
-# Content-Type: multipart/form-data
-
-@router.post("/sessions/{session_id}/images")
-async def upload_image(
-    session_id: str,
-    file: UploadFile,
-    current_session: str = Depends(verify_session_token),
-    image_service: ImageService = Depends(get_image_service),
-) -> ImageUploadResponse:
-    # 1. Check rate limit
-    # 2. Validate file type + size
-    # 3. Safety scan
-    # 4. Store → get media_id
-    # 5. Return media_id (frontend attaches this to next message)
-    ...
-```
-
-**Frontend flow**:
-1. User selects image → `POST /images` → receives `media_id`
-2. User sends message → `POST /messages` with `content` + `media_id`
-3. Backend attaches `media_id` to agent event payload
-
----
-
-## Phase 8 — Tests
-
-**Status: COMPLETE**
-
-- [x] Add session and JWT tests.
-- [x] Add message forwarding and session ownership tests.
-- [x] Add image validation and upload tests.
-- [x] Add agent-client header, parsing, and timeout tests.
-
-### `tests/test_sessions.py`
-- `POST /api/sessions` → 200, returns `session_id` + `token`
-- JWT is valid and decodes to correct `session_id`
-
-### `tests/test_messages.py`
-- `POST /api/sessions/{id}/messages` with valid JWT → forwards to agent client
-- Invalid JWT → 401
-- Rate limit exceeded → 429
-- Agent client error → 500 with safe message
-
-### `tests/test_images.py`
-- Upload valid JPEG → 200 + `media_id`
-- Upload oversized file → 413
-- Upload invalid type → 422
-- Safety scan failure → 400 with safe message
-
-### `tests/test_agent_client.py`
-- Correct `X-Internal-Key` header forwarded
-- Agent response parsed into `AgentEvent` list correctly
-- Timeout → safe error returned
-
----
-
-## Implementation Order
-
-| Phase | Description | Deliverable |
-|-------|-------------|-------------|
-| 1 | Project setup | `pyproject.toml`, `.env.example`, `.gitignore`, `README.md` |
-| 2 | App factory + schemas | `app/main.py`, `app/config.py`, `schemas/` |
-| 3 | Sessions + auth | `app/auth.py`, `app/session.py`, `app/routes/sessions.py` |
-| 4 | Rate limiting | `app/rate_limit.py` |
-| 5 | Message endpoint + agent client | `services/agent_client.py`, `app/routes/messages.py` |
-| 6 | SSE event stream | `services/event_broker.py`, `app/routes/events.py` |
-| 7 | Image upload | `services/image_service.py`, `app/routes/images.py` |
-| 8 | Tests | `tests/` |
-
----
-
-## What Happens in Each User Turn
-
-```text
-User types: "I found a girl around 7 near Saddar"
-
-  1. POST /api/sessions/{id}/messages { "content": "..." }
-  2. Verify JWT → get session_id
-  3. Check rate limit → OK
-  4. POST /internal/sessions/{id}/events (-> WayFindMCPClient)
-     { "event": { "type": "user_message", "content": "...", "media_id": null } }
-  5. WayFindMCPClient runs LangGraph → returns events:
-     [{ "type": "request_information", "fields": ["age", "clothing"] }]
-  6. Return events to frontend
-  7. Frontend renders: "Could you tell me approximately how old she is and what she was wearing?"
-```
-
----
-
-## Relationship to WayFindMCPClient
-
-```text
-ShelterAppUiBackend                WayFindMCPClient
-─────────────────────              ───────────────────────
-Owns: sessions, auth,              Owns: agent state, LangGraph,
-      rate limits, CORS,                 MCP client, LLM, tools,
-      image intake                       matching pipeline
-
-Knows about: session_id,           Knows about: conversation history,
-             media_id,                          intent, criteria,
-             user content                       follow-up state
-
-Does NOT know: LangGraph,          Does NOT know: who the user is,
-               MCP tools,                        auth tokens,
-               agent state                       rate limits
-```
-
----
-
-## Open Questions / Decisions
-
-| # | Question | Decision |
-|---|----------|----------|
-| 1 | SSE vs poll for events? | Start with direct return from `POST /messages`; add SSE in Phase 6 |
-| 2 | Image storage initially? | Local filesystem stub → real object storage later |
-| 3 | Image safety scan initially? | Stub (always safe) → real scan service later |
-| 4 | Account creation? | Not in v1; future: detect intent in chat and create account in-conversation |
-| 5 | JWT secret rotation? | Single secret from `.env` for now |
+### Phase 9: Cascaded Biometric Face Matcher (Post-MVP)
+* InsightFace 512-D vector comparison executed strictly on the Top-3 to Top-5 shortlisted candidates.
