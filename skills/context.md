@@ -88,3 +88,14 @@
 - Accessible via chat for distraught parents or witnesses.
 - Delivers steady reassurance, breathing pauses, and actionable immediate safety steps (e.g., alert store security, check nearby water bodies).
 - Gathers missing clothing and location details smoothly in the background and submits them to the deterministic search engine.
+
+---
+
+## 4. Mandatory Development & Operational Guardrails
+
+1. **Git Push & Commit Discipline:**
+   - Always stage, commit, and `git push` to remote (`origin`) after completing any meaningful coding, writing, refactoring, or database/API work.
+   - Commit messages must follow Conventional Commits formatting (`feat:`, `fix:`, `refactor:`, `docs:`, etc.) and be clearly descriptive of what changed.
+2. **Context Synchronization:**
+   - When introducing changes to backend architecture, database schemas, temporal matching logic, communication bridges, or API endpoints, immediately update [`skills/context.md`](file:///e:/React/Shelter/ShelterAppUiBackend/skills/context.md) and [`README.md`](file:///e:/React/Shelter/ShelterAppUiBackend/README.md) to keep documentation in sync.
+

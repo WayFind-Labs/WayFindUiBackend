@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     image_storage_url: str = ""
     jwt_algorithm: str = "HS256"
     jwt_session_expiry_hours: int = 24
+    database_url: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
